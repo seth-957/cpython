@@ -238,8 +238,13 @@ class FlamegraphCollector(StackTraceCollector):
             }
 
         def convert_children(children, min_samples, path_info):
-            out = []
-            for func, node in children.items():
+            # Iterative post-order traversal to avoid RecursionError
+            # on deeply recursive call stacks.
+            node_map = {}
+            topo_order = []
+            stack = list(children.items())
+            while stack:
+                func, node = stack.pop()
                 samples = node["samples"]
                 significant_for_thread = any(
                     thread_samples >= max(
@@ -255,7 +260,6 @@ class FlamegraphCollector(StackTraceCollector):
                 if samples < min_samples and not significant_for_thread:
                     continue
 
-                # Intern all string components for maximum efficiency
                 filename_idx = self._string_table.intern(func[0])
                 funcname_idx = self._string_table.intern(func[2])
                 module_name = self._get_module_name(func[0], path_info)
@@ -288,11 +292,9 @@ class FlamegraphCollector(StackTraceCollector):
 
                 source = self._get_source_lines(func)
                 if source:
-                    # Intern source lines for memory efficiency
                     source_indices = [self._string_table.intern(line) for line in source]
                     child_entry["source"] = source_indices
 
-                # Include opcode data if available
                 opcodes = node.get("opcodes", {})
                 if opcodes:
                     child_entry["opcodes"] = dict(opcodes)
@@ -305,15 +307,27 @@ class FlamegraphCollector(StackTraceCollector):
                         )
                     }
 
-                # Recurse
-                child_entry["children"] = convert_children(
-                    node["children"], min_samples, path_info
-                )
-                out.append(child_entry)
+                node_map[id(node)] = child_entry
+                topo_order.append((func, node))
+                for child_func, child_node in node["children"].items():
+                    stack.append((child_func, child_node))
 
-            # Sort by value (descending) then by name index for consistent ordering
-            out.sort(key=lambda x: (-x["value"], x["name"]))
-            return out
+            # Build children lists bottom-up (reverse topological order)
+            for func, node in reversed(topo_order):
+                entry = node_map[id(node)]
+                for child_func, child_node in node["children"].items():
+                    child_entry = node_map.get(id(child_node))
+                    if child_entry is not None:
+                        entry["children"].append(child_entry)
+                entry["children"].sort(key=lambda x: (-x["value"], x["name"]))
+
+            root_entries = []
+            for child_func, child_node in children.items():
+                e = node_map.get(id(child_node))
+                if e is not None:
+                    root_entries.append(e)
+            root_entries.sort(key=lambda x: (-x["value"], x["name"]))
+            return root_entries
 
         # Filter out very small functions (less than 0.1% of total samples)
         total_samples = self._total_samples
