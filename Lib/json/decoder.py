@@ -370,6 +370,7 @@ class JSONDecoder(object):
         have extraneous data at the end.
 
         """
+        idx = WHITESPACE.match(s, idx).end()
         try:
             obj, end = self.scan_once(s, idx)
         except StopIteration as err:
