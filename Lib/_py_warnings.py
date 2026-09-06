@@ -786,14 +786,20 @@ class deprecated:
         *,
         category: type[Warning] | None = DeprecationWarning,
         stacklevel: int = 1,
+        skip_file_prefixes: tuple[str, ...] = (),
     ) -> None:
         if not isinstance(message, str):
             raise TypeError(
                 f"Expected an object of type str for 'message', not {type(message).__name__!r}"
             )
+        if not isinstance(skip_file_prefixes, tuple):
+            raise TypeError('skip_file_prefixes must be a tuple of strs.')
+        if skip_file_prefixes and not all(isinstance(p, str) for p in skip_file_prefixes):
+            raise TypeError('skip_file_prefixes must be a tuple of strs.')
         self.message = message
         self.category = category
         self.stacklevel = stacklevel
+        self.skip_file_prefixes = skip_file_prefixes
 
     def __call__(self, arg, /):
         # Make sure the inner functions created below don't
@@ -801,6 +807,7 @@ class deprecated:
         msg = self.message
         category = self.category
         stacklevel = self.stacklevel
+        skip_file_prefixes = self.skip_file_prefixes
         if category is None:
             arg.__deprecated__ = msg
             return arg
@@ -813,7 +820,7 @@ class deprecated:
             @functools.wraps(original_new)
             def __new__(cls, /, *args, **kwargs):
                 if cls is arg:
-                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
+                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1, skip_file_prefixes=skip_file_prefixes)
                 if original_new is not object.__new__:
                     return original_new(cls, *args, **kwargs)
                 # Mirrors a similar check in object.__new__.
@@ -837,11 +844,11 @@ class deprecated:
 
                 @functools.wraps(original_init_subclass)
                 def __init_subclass__(*args, **kwargs):
-                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
+                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1, skip_file_prefixes=skip_file_prefixes)
                     return original_init_subclass(*args, **kwargs)
             else:
                 def __init_subclass__(cls, *args, **kwargs):
-                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
+                    _wm.warn(msg, category=category, stacklevel=stacklevel + 1, skip_file_prefixes=skip_file_prefixes)
                     return super(arg, cls).__init_subclass__(*args, **kwargs)
 
             arg.__init_subclass__ = classmethod(__init_subclass__)
@@ -855,7 +862,7 @@ class deprecated:
 
             @functools.wraps(arg)
             def wrapper(*args, **kwargs):
-                _wm.warn(msg, category=category, stacklevel=stacklevel + 1)
+                _wm.warn(msg, category=category, stacklevel=stacklevel + 1, skip_file_prefixes=skip_file_prefixes)
                 return arg(*args, **kwargs)
 
             if inspect.iscoroutinefunction(arg):
