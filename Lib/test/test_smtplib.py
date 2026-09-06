@@ -1509,6 +1509,7 @@ class SMTPUTF8SimTests(unittest.TestCase):
         msg['From'] = "Páolo <főo@bar.com>"
         msg['To'] = 'Dinsdale'
         msg['Subject'] = 'Nudge nudge, wink, wink \u1F609'
+        msg['Date'] = 'Thu, 01 Jan 2026 00:00:00 +0000'
         # XXX I don't know why I need two \n's here, but this is an existing
         # bug (if it is one) and not a problem with the new functionality.
         msg.set_content("oh là là, know what I mean, know what I mean?\n\n")
@@ -1518,6 +1519,7 @@ class SMTPUTF8SimTests(unittest.TestCase):
             From: Páolo <főo@bar.com>
             To: Dinsdale
             Subject: Nudge nudge, wink, wink \u1F609
+            Date: Thu, 01 Jan 2026 00:00:00 +0000
             Content-Type: text/plain; charset="utf-8"
             Content-Transfer-Encoding: 8bit
             MIME-Version: 1.0

@@ -961,6 +961,9 @@ class SMTP:
                                        msg[header_prefix + 'Cc'])
                            if f is not None]
             to_addrs = [a[1] for a in email.utils.getaddresses(addr_fields)]
+        # Add a Date header if missing, per RFC 5322 Section 3.6.1
+        if not msg.get('Date'):
+            msg['Date'] = email.utils.formatdate()
         # Make a local copy so we can delete the bcc headers.
         msg_copy = copy.copy(msg)
         del msg_copy['Bcc']
