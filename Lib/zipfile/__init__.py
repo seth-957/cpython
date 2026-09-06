@@ -2145,7 +2145,7 @@ class ZipFile:
             try:
                 # Read by chunks, to avoid an OverflowError or a
                 # MemoryError with very large embedded files.
-                with self.open(zinfo.filename, "r") as f:
+                with self.open(zinfo, "r") as f:
                     while f.read(chunk_size):     # Check CRC-32
                         pass
             except BadZipFile:
