@@ -1154,7 +1154,7 @@ class _BaseNetwork(_IPAddressBase):
             return self.__class__(
                 f"{self._string_from_ip_int(next_ip)}/{next_prefix}"
             )
-        except OverflowError:
+        except (OverflowError, ValueError):
             raise ValueError(
                 f"out of address space, cannot make another /{next_prefix} "
                 "network"
