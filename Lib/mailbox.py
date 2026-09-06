@@ -1239,7 +1239,8 @@ class MH(Mailbox):
                             keys.add(int(spec))
                         else:
                             start, stop = (int(x) for x in spec.split('-'))
-                            keys.update(range(start, stop + 1))
+                            keys.update(k for k in range(start, stop + 1)
+                                        if k in all_keys)
                     results[name] = [key for key in sorted(keys) \
                                          if key in all_keys]
                     if len(results[name]) == 0:
