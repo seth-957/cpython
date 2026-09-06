@@ -514,6 +514,15 @@ class ShlexTest(unittest.TestCase):
         s.sourcehook = lambda f: (f, io.StringIO("included"))
         self.assertEqual(list(s), ["included", "remaining"])
 
+    def testSourceInclusionAtEof(self):
+        """gh-156891: When a source command is at the end of the main file
+        (especially without a trailing newline), the included file's tokens
+        must not be silently discarded."""
+        s = shlex.shlex("trigger filename")
+        s.source = "trigger"
+        s.sourcehook = lambda f: (f, io.StringIO("inc_first inc_last"))
+        self.assertEqual(list(s), ["inc_first", "inc_last"])
+
     def testGetTokenPopsPushbackDebug(self):
         s = shlex.shlex("")
         s.push_token("hello")
