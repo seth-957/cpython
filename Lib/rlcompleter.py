@@ -31,9 +31,7 @@ Notes:
 
 import atexit
 import builtins
-import inspect
 import keyword
-import re
 import __main__
 import warnings
 import types
@@ -107,6 +105,7 @@ class Completer:
         if callable(val):
             word += "("
             try:
+                import inspect
                 if not inspect.signature(val).parameters:
                     word += ")"
             except ValueError:
@@ -153,6 +152,7 @@ class Completer:
         with a __getattr__ hook is evaluated.
 
         """
+        import re
         m = re.match(r"(\w+(\.\w+)*)\.(\w*)", text)
         if not m:
             return []

@@ -736,6 +736,15 @@ class _Environ(MutableMapping):
             raise KeyError(key) from None
         return self.decodevalue(value)
 
+    def __contains__(self, key):
+        return self.encodekey(key) in self._data
+
+    def get(self, key, default=None):
+        encodedkey = self.encodekey(key)
+        if encodedkey in self._data:
+            return self.decodevalue(self._data[encodedkey])
+        return default
+
     def __setitem__(self, key, value):
         key = self.encodekey(key)
         value = self.encodevalue(value)
