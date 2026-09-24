@@ -122,7 +122,10 @@ async def staggered_race(coro_fns, delay, *, loop=None):
         except (SystemExit, KeyboardInterrupt):
             raise
         except BaseException as e:
-            exceptions[this_index] = e
+            # Only store the first exception. If the task is cancelled after
+            # raising an exception, don't overwrite it with CancelledError.
+            if exceptions[this_index] is None:
+                exceptions[this_index] = e
             this_failed.set()  # Kickstart the next coroutine
         else:
             # Store winner's results
@@ -130,6 +133,11 @@ async def staggered_race(coro_fns, delay, *, loop=None):
             assert winner_index is None
             winner_index = this_index
             winner_result = result
+            # Yield control to allow other tasks to complete any pending awaits
+            # and raise exceptions before we cancel them. This prevents
+            # CancelledError from overwriting exceptions that tasks are about
+            # to raise.
+            await tasks.sleep(0)
             # Cancel all other tasks. We take care to not cancel the current
             # task as well. If we do so, then since there is no `await` after
             # here and CancelledError are usually thrown at one, we will
@@ -139,7 +147,7 @@ async def staggered_race(coro_fns, delay, *, loop=None):
             # https://bugs.python.org/issue30048
             current_task = tasks.current_task(loop)
             for t in running_tasks:
-                if t is not current_task:
+                if t is not current_task and not t.done():
                     t.cancel()
 
     propagate_cancellation_error = None
