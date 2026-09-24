@@ -1708,12 +1708,15 @@ type_set_abstractmethods(PyObject *tp, PyObject *value, void *Py_UNUSED(closure)
 
     BEGIN_TYPE_LOCK();
     _PyType_Modified_Unlocked(type);
+    pinned_mutexes_t pinned;
+    type_lock_prevent_release(&pinned);
     types_stop_world();
     if (abstract)
         type_add_flags(type, Py_TPFLAGS_IS_ABSTRACT);
     else
         type_clear_flags(type, Py_TPFLAGS_IS_ABSTRACT);
     types_start_world();
+    type_lock_allow_release(&pinned);
     ASSERT_TYPE_LOCK_HELD();
     END_TYPE_LOCK();
 
@@ -12456,9 +12459,12 @@ PyType_Freeze(PyTypeObject *type)
     }
 
     BEGIN_TYPE_LOCK();
+    pinned_mutexes_t pinned;
+    type_lock_prevent_release(&pinned);
     types_stop_world();
     type_add_flags(type, Py_TPFLAGS_IMMUTABLETYPE);
     types_start_world();
+    type_lock_allow_release(&pinned);
     ASSERT_TYPE_LOCK_HELD();
     _PyType_Modified_Unlocked(type);
     END_TYPE_LOCK();
